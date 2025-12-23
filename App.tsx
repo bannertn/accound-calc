@@ -9,8 +9,8 @@ import {
   Plus, Trash2, X, Target, FileDown,
   GripVertical
 } from 'lucide-react';
-import { BudgetInputs, ExpenditureItem } from './types.js';
-import NumberInput from './components/NumberInput.js';
+import { BudgetInputs, ExpenditureItem } from './types';
+import NumberInput from './components/NumberInput';
 
 const App: React.FC = () => {
   const [inputs, setInputs] = useState<BudgetInputs>({
@@ -99,7 +99,6 @@ const App: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // Drag and Drop Logic
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = "move";
@@ -118,7 +117,7 @@ const App: React.FC = () => {
   const handleDragEnd = () => setDraggedIndex(null);
 
   return (
-    <div className="min-h-screen pb-20 print:bg-white print:pb-0">
+    <div className="min-h-screen pb-20 print:bg-white print:pb-0 text-slate-900">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-20 no-print">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -128,11 +127,11 @@ const App: React.FC = () => {
             <h1 className="text-xl font-black text-slate-800 tracking-tight">會計預算評估中心</h1>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={handleExportCSV} className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold border border-slate-200">
+            <button onClick={handleExportCSV} className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold border border-slate-200 transition-all">
               <FileDown size={18} />
               <span className="hidden sm:inline">匯出 CSV</span>
             </button>
-            <button onClick={() => window.print()} className="flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-xl font-bold shadow-md">
+            <button onClick={() => window.print()} className="flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-xl font-bold shadow-md transition-all">
               <Printer size={18} />
               <span className="hidden sm:inline">PDF 報表</span>
             </button>
@@ -155,7 +154,7 @@ const App: React.FC = () => {
                   <Target size={14} className="text-orange-500" />
                   自定義警戒佔比 (%)
                 </label>
-                <input type="number" value={targetPercentage} onChange={(e) => setTargetPercentage(Number(e.target.value))} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl font-black text-lg focus:border-blue-500 outline-none" />
+                <input type="number" value={targetPercentage} onChange={(e) => setTargetPercentage(Number(e.target.value))} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl font-black text-lg focus:border-blue-500 outline-none transition-all" />
               </div>
             </div>
           </div>
@@ -163,7 +162,7 @@ const App: React.FC = () => {
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-black text-slate-900">預估支出清單</h2>
-              <button onClick={() => setIsModalOpen(true)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100">
+              <button onClick={() => setIsModalOpen(true)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
                 <Plus size={20} />
               </button>
             </div>
@@ -171,9 +170,9 @@ const App: React.FC = () => {
               {inputs.estimatedItems.map((item, index) => (
                 <div 
                   key={item.id} draggable onDragStart={(e) => handleDragStart(e, index)} onDragEnter={() => handleDragEnter(index)} onDragEnd={handleDragEnd} onDragOver={(e) => e.preventDefault()}
-                  className={`group flex items-start gap-3 p-4 bg-slate-50 rounded-xl border-2 transition-all cursor-default ${draggedIndex === index ? 'opacity-40 border-blue-500 bg-blue-50 scale-95' : 'border-transparent hover:border-blue-200'}`}
+                  className={`group flex items-start gap-3 p-4 bg-slate-50 rounded-xl border-2 transition-all cursor-default ${draggedIndex === index ? 'opacity-40 border-blue-500 bg-blue-50 scale-95' : 'border-transparent hover:border-blue-200 hover:shadow-sm'}`}
                 >
-                  <div className="mt-1 cursor-grab active:cursor-grabbing text-slate-300 group-hover:text-slate-400">
+                  <div className="mt-1 cursor-grab active:cursor-grabbing text-slate-300 group-hover:text-slate-400 transition-colors">
                     <GripVertical size={20} />
                   </div>
                   <div className="flex-1">
@@ -186,6 +185,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
               ))}
+              <p className="text-[10px] text-slate-400 text-center font-bold uppercase tracking-widest pt-2 italic">可拖移項目以調整報表順序</p>
             </div>
           </div>
         </section>
@@ -221,7 +221,7 @@ const App: React.FC = () => {
                     <th className="py-4 px-6 text-right">對比目標額度</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-900 font-medium">
+                <tbody className="divide-y divide-slate-100 font-medium">
                   <tr>
                     <td className="py-5 px-6 font-bold">1. 總收入基準 (Income)</td>
                     <td className="py-5 px-6 text-right font-black">${inputs.totalIncome.toLocaleString()}</td>
@@ -269,7 +269,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm no-print">
             <h4 className="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-[0.2em] border-b border-slate-50 pb-2">財務核心數據趨勢</h4>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -291,25 +291,25 @@ const App: React.FC = () => {
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 bg-slate-50 border-b flex items-center justify-between">
               <h3 className="text-xl font-black text-slate-900 italic">新增預估支出</h3>
-              <button onClick={() => setIsModalOpen(false)} className="bg-white p-2 rounded-full shadow-sm"><X size={20}/></button>
+              <button onClick={() => setIsModalOpen(false)} className="bg-white p-2 rounded-full shadow-sm hover:rotate-90 transition-all"><X size={20}/></button>
             </div>
             <div className="p-8 space-y-6">
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">項目名稱</label>
-                <input type="text" autoFocus value={newItem.name} onChange={(e) => setNewItem(prev => ({ ...prev, name: e.target.value }))} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold outline-none focus:border-blue-500" />
+                <input type="text" autoFocus value={newItem.name} onChange={(e) => setNewItem(prev => ({ ...prev, name: e.target.value }))} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold outline-none focus:border-blue-500 transition-all" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">預估金額 (USD)</label>
-                <input type="number" value={newItem.amount || ''} onChange={(e) => setNewItem(prev => ({ ...prev, amount: Number(e.target.value) }))} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold outline-none focus:border-blue-500" />
+                <input type="number" value={newItem.amount || ''} onChange={(e) => setNewItem(prev => ({ ...prev, amount: Number(e.target.value) }))} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold outline-none focus:border-blue-500 transition-all" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">備註內容</label>
-                <textarea value={newItem.remark} onChange={(e) => setNewItem(prev => ({ ...prev, remark: e.target.value }))} rows={3} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium outline-none focus:border-blue-500 resize-none" />
+                <textarea value={newItem.remark} onChange={(e) => setNewItem(prev => ({ ...prev, remark: e.target.value }))} rows={3} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium outline-none focus:border-blue-500 resize-none transition-all" />
               </div>
             </div>
             <div className="p-6 bg-slate-50 flex gap-4">
-              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3.5 rounded-2xl font-black text-slate-500 bg-white border">取消</button>
-              <button onClick={handleAddItem} disabled={!newItem.name} className="flex-[2] py-3.5 rounded-2xl font-black text-white bg-blue-600 shadow-lg hover:bg-blue-700 disabled:opacity-50">確認新增</button>
+              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3.5 rounded-2xl font-black text-slate-500 bg-white border hover:bg-slate-50 transition-all">取消</button>
+              <button onClick={handleAddItem} disabled={!newItem.name} className="flex-[2] py-3.5 rounded-2xl font-black text-white bg-blue-600 shadow-lg hover:bg-blue-700 disabled:opacity-50 transition-all">確認新增</button>
             </div>
           </div>
         </div>
