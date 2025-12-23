@@ -39,7 +39,7 @@
 </head>
 <body>
     <div id="root"></div>
-    <!-- 使用相對路徑支援 GitHub Pages 的子路徑結構 -->
-    <script type="module" src="./index.tsx"></script>
+    <!-- 必須引用 index.js 以利環境編譯器正確載入 ES 模組 -->
+    <script type="module" src="index.js"></script>
 </body>
 </html>

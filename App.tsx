@@ -5,12 +5,12 @@ import {
 } from 'recharts';
 import { 
   Wallet, TrendingUp, Calculator, 
-  Briefcase, Settings, Info, Printer, 
+  Briefcase, Info, Printer, 
   Plus, Trash2, X, Target, FileDown,
   GripVertical
 } from 'lucide-react';
-import { BudgetInputs, ExpenditureItem } from './types';
-import NumberInput from './components/NumberInput';
+import { BudgetInputs, ExpenditureItem } from './types.js';
+import NumberInput from './components/NumberInput.js';
 
 const App: React.FC = () => {
   const [inputs, setInputs] = useState<BudgetInputs>({
@@ -77,8 +77,8 @@ const App: React.FC = () => {
   };
 
   const handleExportCSV = () => {
-    const headers = ["類別/項目", "金額 (USD)", "備註", "距目標額度"];
     const rows = [
+      ["類別/項目", "金額 (USD)", "備註", "距目標額度"],
       ["總收入基準", inputs.totalIncome, "主錢包", ""],
       ["目前已實支", inputs.actualExpenditure, "已核銷單據", ""],
       ...inputs.estimatedItems.map(item => [item.name, item.amount, item.remark || "", ""]),
@@ -99,33 +99,26 @@ const App: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // Drag and Drop Handlers
+  // Drag and Drop Logic
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = "move";
-    // Required for some browsers
-    e.dataTransfer.setData("text/html", "");
   };
 
   const handleDragEnter = (index: number) => {
     if (draggedIndex === null || draggedIndex === index) return;
-
     const newItems = [...inputs.estimatedItems];
     const itemToMove = newItems[draggedIndex];
     newItems.splice(draggedIndex, 1);
     newItems.splice(index, 0, itemToMove);
-
     setDraggedIndex(index);
     setInputs(prev => ({ ...prev, estimatedItems: newItems }));
   };
 
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
-  };
+  const handleDragEnd = () => setDraggedIndex(null);
 
   return (
     <div className="min-h-screen pb-20 print:bg-white print:pb-0">
-      {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-20 no-print">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -135,17 +128,11 @@ const App: React.FC = () => {
             <h1 className="text-xl font-black text-slate-800 tracking-tight">會計預算評估中心</h1>
           </div>
           <div className="flex items-center gap-2">
-            <button 
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold transition-all border border-slate-200"
-            >
+            <button onClick={handleExportCSV} className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold border border-slate-200">
               <FileDown size={18} />
               <span className="hidden sm:inline">匯出 CSV</span>
             </button>
-            <button 
-              onClick={() => window.print()}
-              className="flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-xl font-bold transition-all shadow-md"
-            >
+            <button onClick={() => window.print()} className="flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-xl font-bold shadow-md">
               <Printer size={18} />
               <span className="hidden sm:inline">PDF 報表</span>
             </button>
@@ -154,8 +141,6 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 print:block">
-        
-        {/* Left Control Side */}
         <section className="lg:col-span-4 flex flex-col gap-6 no-print">
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <h2 className="text-lg font-black mb-6 flex items-center gap-2 text-slate-900">
@@ -163,29 +148,14 @@ const App: React.FC = () => {
               預算核心設定
             </h2>
             <div className="space-y-5">
-              <NumberInput 
-                label="目前總收入 (年度)" 
-                value={inputs.totalIncome} 
-                onChange={(v) => handleUpdateBase('totalIncome', v)} 
-                icon={<TrendingUp size={16} className="text-green-600" />}
-              />
-              <NumberInput 
-                label="目前累計實支" 
-                value={inputs.actualExpenditure} 
-                onChange={(v) => handleUpdateBase('actualExpenditure', v)} 
-                icon={<Briefcase size={16} className="text-blue-600" />}
-              />
+              <NumberInput label="目前總收入 (年度)" value={inputs.totalIncome} onChange={(v) => handleUpdateBase('totalIncome', v)} icon={<TrendingUp size={16} className="text-green-600" />} />
+              <NumberInput label="目前累計實支" value={inputs.actualExpenditure} onChange={(v) => handleUpdateBase('actualExpenditure', v)} icon={<Briefcase size={16} className="text-blue-600" />} />
               <div className="pt-4 border-t">
                 <label className="text-xs font-black text-slate-500 uppercase flex items-center gap-2 mb-2 tracking-widest">
                   <Target size={14} className="text-orange-500" />
                   自定義警戒佔比 (%)
                 </label>
-                <input
-                  type="number"
-                  value={targetPercentage}
-                  onChange={(e) => setTargetPercentage(Number(e.target.value))}
-                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl font-black text-lg outline-none focus:border-blue-500"
-                />
+                <input type="number" value={targetPercentage} onChange={(e) => setTargetPercentage(Number(e.target.value))} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl font-black text-lg focus:border-blue-500 outline-none" />
               </div>
             </div>
           </div>
@@ -193,58 +163,33 @@ const App: React.FC = () => {
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-black text-slate-900">預估支出清單</h2>
-              <button 
-                onClick={() => setIsModalOpen(true)}
-                className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-              >
+              <button onClick={() => setIsModalOpen(true)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100">
                 <Plus size={20} />
               </button>
             </div>
             <div className="space-y-3">
-              {inputs.estimatedItems.length === 0 ? (
-                <div className="text-center py-10 border-2 border-dashed border-slate-100 rounded-xl text-slate-400 font-bold italic">
-                  暫無預估項目
-                </div>
-              ) : (
-                inputs.estimatedItems.map((item, index) => (
-                  <div 
-                    key={item.id} 
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, index)}
-                    onDragEnter={() => handleDragEnter(index)}
-                    onDragEnd={handleDragEnd}
-                    onDragOver={(e) => e.preventDefault()}
-                    className={`group flex items-start gap-3 p-4 bg-slate-50 rounded-xl border-2 transition-all cursor-default ${draggedIndex === index ? 'opacity-40 border-blue-500 bg-blue-50 scale-95' : 'border-transparent hover:border-blue-200 hover:shadow-md'}`}
-                  >
-                    <div className="mt-1 cursor-grab active:cursor-grabbing text-slate-300 group-hover:text-slate-400">
-                      <GripVertical size={20} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between font-black text-slate-800">
-                        <span>{item.name}</span>
-                        <button 
-                          onClick={() => handleDeleteItem(item.id)} 
-                          className="text-slate-300 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 size={16}/>
-                        </button>
-                      </div>
-                      <div className="text-blue-600 font-black text-lg">${item.amount.toLocaleString()}</div>
-                      <p className="text-[11px] text-slate-500 mt-1">{item.remark || "無備註"}</p>
-                    </div>
+              {inputs.estimatedItems.map((item, index) => (
+                <div 
+                  key={item.id} draggable onDragStart={(e) => handleDragStart(e, index)} onDragEnter={() => handleDragEnter(index)} onDragEnd={handleDragEnd} onDragOver={(e) => e.preventDefault()}
+                  className={`group flex items-start gap-3 p-4 bg-slate-50 rounded-xl border-2 transition-all cursor-default ${draggedIndex === index ? 'opacity-40 border-blue-500 bg-blue-50 scale-95' : 'border-transparent hover:border-blue-200'}`}
+                >
+                  <div className="mt-1 cursor-grab active:cursor-grabbing text-slate-300 group-hover:text-slate-400">
+                    <GripVertical size={20} />
                   </div>
-                ))
-              )}
-              {inputs.estimatedItems.length > 1 && (
-                <p className="text-[10px] text-slate-400 text-center font-bold uppercase tracking-widest pt-2">
-                  提示：可直接拖移項目調整順序
-                </p>
-              )}
+                  <div className="flex-1">
+                    <div className="flex justify-between font-black text-slate-800">
+                      <span>{item.name}</span>
+                      <button onClick={() => handleDeleteItem(item.id)} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
+                    </div>
+                    <div className="text-blue-600 font-black text-lg">${item.amount.toLocaleString()}</div>
+                    <p className="text-[11px] text-slate-500 mt-1">{item.remark || "無備註"}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* Right Dashboard Side */}
         <section className="lg:col-span-8 flex flex-col gap-6 print:w-full">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
@@ -276,15 +221,15 @@ const App: React.FC = () => {
                     <th className="py-4 px-6 text-right">對比目標額度</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 text-slate-900 font-medium">
                   <tr>
-                    <td className="py-5 px-6 font-bold text-slate-900">1. 總收入基準 (Income)</td>
-                    <td className="py-5 px-6 text-right font-black text-slate-900">${inputs.totalIncome.toLocaleString()}</td>
+                    <td className="py-5 px-6 font-bold">1. 總收入基準 (Income)</td>
+                    <td className="py-5 px-6 text-right font-black">${inputs.totalIncome.toLocaleString()}</td>
                     <td className="py-5 px-6 text-slate-500 italic">財務主帳戶</td>
                     <td className="py-5 px-6 text-right text-slate-300">—</td>
                   </tr>
                   <tr className="bg-blue-50/20">
-                    <td className="py-5 px-6 font-bold text-slate-900 underline underline-offset-4 decoration-blue-200">2. 目前實支項目 (Spent)</td>
+                    <td className="py-5 px-6 font-bold underline decoration-blue-200">2. 目前實支項目 (Spent)</td>
                     <td className="py-5 px-6 text-right font-black text-blue-700">${inputs.actualExpenditure.toLocaleString()}</td>
                     <td className="py-5 px-6 text-slate-500 italic">已簽核核銷</td>
                     <td className="py-5 px-6 text-right text-slate-300">—</td>
@@ -292,28 +237,23 @@ const App: React.FC = () => {
                   {inputs.estimatedItems.map((item, idx) => (
                     <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                       <td className="py-5 px-6 text-slate-800 font-bold">{idx + 3}. 預估支出：{item.name}</td>
-                      <td className="py-5 px-6 text-right font-black text-slate-900">${item.amount.toLocaleString()}</td>
+                      <td className="py-5 px-6 text-right font-black">${item.amount.toLocaleString()}</td>
                       <td className="py-5 px-6 text-slate-600 text-xs font-medium max-w-xs">{item.remark || "無相關細節"}</td>
                       <td className="py-5 px-6 text-right text-slate-300">—</td>
                     </tr>
                   ))}
-                  
                   <tr className="bg-orange-50/50">
-                    <td className="py-5 px-6 text-orange-900 font-black flex items-center gap-2">
-                      <Target size={14}/> 目標支出額度 ({targetPercentage}%)
-                    </td>
+                    <td className="py-5 px-6 text-orange-900 font-black flex items-center gap-2"><Target size={14}/> 目標支出額度 ({targetPercentage}%)</td>
                     <td className="py-5 px-6 text-right font-black text-orange-900">${metrics.targetBudget.toLocaleString()}</td>
-                    <td className="py-5 px-6 text-orange-700 text-[10px] font-bold italic">總收之 {targetPercentage} %</td>
+                    <td className="py-5 px-6 text-orange-700 text-[10px] font-bold italic">總收入 {targetPercentage} %</td>
                     <td className="py-5 px-6 text-right font-black text-orange-900">${metrics.targetBudget.toLocaleString()}</td>
                   </tr>
-
-                  <tr className="bg-blue-50">
-                    <td className="py-5 px-6 text-blue-800 font-black">距目標可再支出空間</td>
+                  <tr className="bg-blue-50 text-blue-800">
+                    <td className="py-5 px-6 font-black">距目標可再支出空間</td>
                     <td className="py-5 px-6 text-right text-slate-400">—</td>
-                    <td className="py-5 px-6 text-blue-600 text-[10px] font-bold italic">預算盈餘監測</td>
-                    <td className="py-5 px-6 text-right font-black text-blue-800 text-lg">${metrics.amountToReachTarget.toLocaleString()}</td>
+                    <td className="py-5 px-6 text-[10px] font-bold italic">預算盈餘監測</td>
+                    <td className="py-5 px-6 text-right font-black text-lg">${metrics.amountToReachTarget.toLocaleString()}</td>
                   </tr>
-
                   <tr className={`border-t-4 border-slate-900 ${metrics.isOverBudget ? 'bg-red-900 text-white' : 'bg-slate-900 text-white'}`}>
                     <td className="py-8 px-6 text-xl font-black italic">預估總額支出 (Total)</td>
                     <td className="py-8 px-6 text-right text-2xl font-black">${metrics.totalProjectedExpenditure.toLocaleString()}</td>
@@ -337,11 +277,7 @@ const App: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                   <XAxis type="number" hide />
                   <YAxis dataKey="name" type="category" stroke="#64748b" fontSize={11} width={80} axisLine={false} tickLine={false} fontWeight="900" />
-                  <Tooltip 
-                    cursor={{ fill: '#f8fafc' }}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}
-                    formatter={(v: number) => `$${v.toLocaleString()}`}
-                  />
+                  <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }} formatter={(v: number) => `$${v.toLocaleString()}`} />
                   <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={28} fill="#2563eb" />
                 </BarChart>
               </ResponsiveContainer>
@@ -350,7 +286,6 @@ const App: React.FC = () => {
         </section>
       </main>
 
-      {/* Modal: Add Item */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md no-print">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
@@ -361,32 +296,20 @@ const App: React.FC = () => {
             <div className="p-8 space-y-6">
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">項目名稱</label>
-                <input 
-                  type="text" autoFocus placeholder="請輸入項目名稱" 
-                  value={newItem.name} onChange={(e) => setNewItem(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold outline-none focus:border-blue-500 transition-all"
-                />
+                <input type="text" autoFocus value={newItem.name} onChange={(e) => setNewItem(prev => ({ ...prev, name: e.target.value }))} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold outline-none focus:border-blue-500" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">預估金額 (USD)</label>
-                <input 
-                  type="number" placeholder="0.00" 
-                  value={newItem.amount || ''} onChange={(e) => setNewItem(prev => ({ ...prev, amount: Number(e.target.value) }))}
-                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold outline-none focus:border-blue-500 transition-all"
-                />
+                <input type="number" value={newItem.amount || ''} onChange={(e) => setNewItem(prev => ({ ...prev, amount: Number(e.target.value) }))} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold outline-none focus:border-blue-500" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">備註內容</label>
-                <textarea 
-                  placeholder="補充細節..." 
-                  value={newItem.remark} onChange={(e) => setNewItem(prev => ({ ...prev, remark: e.target.value }))}
-                  rows={3} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium outline-none focus:border-blue-500 transition-all resize-none"
-                />
+                <textarea value={newItem.remark} onChange={(e) => setNewItem(prev => ({ ...prev, remark: e.target.value }))} rows={3} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium outline-none focus:border-blue-500 resize-none" />
               </div>
             </div>
             <div className="p-6 bg-slate-50 flex gap-4">
-              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3.5 rounded-2xl font-black text-slate-500 bg-white border shadow-sm">取消</button>
-              <button onClick={handleAddItem} disabled={!newItem.name} className="flex-[2] py-3.5 rounded-2xl font-black text-white bg-blue-600 shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all disabled:opacity-50">確認新增</button>
+              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3.5 rounded-2xl font-black text-slate-500 bg-white border">取消</button>
+              <button onClick={handleAddItem} disabled={!newItem.name} className="flex-[2] py-3.5 rounded-2xl font-black text-white bg-blue-600 shadow-lg hover:bg-blue-700 disabled:opacity-50">確認新增</button>
             </div>
           </div>
         </div>
