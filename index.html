@@ -10,14 +10,19 @@
     <style>
         body {
             font-family: 'Inter', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-            background-color: #f1f5f9;
+            background-color: #f8fafc;
             color: #0f172a;
         }
-        /* 滾動條美化 */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        /* 捲動條美化 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+        }
     </style>
 <script type="importmap">
 {
@@ -34,7 +39,7 @@
 </head>
 <body>
     <div id="root"></div>
-    <!-- 顯式加入入口文件，支援 GitHub Pages 直接瀏覽 -->
+    <!-- 使用相對路徑支援 GitHub Pages 的子路徑結構 -->
     <script type="module" src="./index.tsx"></script>
 </body>
 </html>

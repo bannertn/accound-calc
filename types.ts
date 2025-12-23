@@ -19,10 +19,6 @@ export interface BudgetMetrics {
   projectedTotalPercentage: number;
   remainingBudget: number;
   isOverBudget: boolean;
-}
-
-export interface InsightReport {
-  analysis: string;
-  recommendations: string[];
-  status: 'Healthy' | 'Warning' | 'Critical';
+  amountToReachTarget: number;
+  targetBudget: number;
 }

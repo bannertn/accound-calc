@@ -1,33 +1,32 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
-  PieChart, Pie, Cell
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { 
   Wallet, TrendingUp, Calculator, 
   Briefcase, Settings, Info, Printer, 
-  Plus, Trash2, X, Target, ArrowRightCircle
+  Plus, Trash2, X, Target, FileDown,
+  GripVertical
 } from 'lucide-react';
 import { BudgetInputs, ExpenditureItem } from './types';
 import NumberInput from './components/NumberInput';
-
-const COLORS = ['#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed', '#4f46e5', '#db2777', '#0891b2'];
 
 const App: React.FC = () => {
   const [inputs, setInputs] = useState<BudgetInputs>({
     totalIncome: 1000000,
     actualExpenditure: 350000,
     estimatedItems: [
-      { id: '1', name: '人事費用', amount: 150000, remark: '包含季度獎金預留' },
-      { id: '2', name: '辦公設備', amount: 50000, remark: '伺服器升級與筆電汰換' },
-      { id: '3', name: '行銷支出', amount: 80000, remark: 'Google Ads 與線下活動' },
+      { id: '1', name: '人事費用', amount: 150000, remark: '含季度績效獎金' },
+      { id: '2', name: '辦公租賃', amount: 50000, remark: '辦公室月租與水電' },
+      { id: '3', name: '行銷廣告', amount: 80000, remark: '數位廣告投放下半年' },
     ]
   });
 
   const [targetPercentage, setTargetPercentage] = useState(65);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newItem, setNewItem] = useState({ name: '', amount: 0, remark: '' });
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const metrics = useMemo(() => {
     const futureTotal = inputs.estimatedItems.reduce((acc, item) => acc + item.amount, 0);
@@ -56,11 +55,6 @@ const App: React.FC = () => {
     { name: '剩餘空間', value: Math.max(0, metrics.remainingBudget) }
   ];
 
-  const breakdownData = inputs.estimatedItems.map(item => ({
-    name: item.name,
-    value: item.amount
-  }));
-
   const handleUpdateBase = (key: 'totalIncome' | 'actualExpenditure', value: number) => {
     setInputs(prev => ({ ...prev, [key]: value }));
   };
@@ -73,354 +67,330 @@ const App: React.FC = () => {
       amount: newItem.amount,
       remark: newItem.remark
     };
-    setInputs(prev => ({
-      ...prev,
-      estimatedItems: [...prev.estimatedItems, item]
-    }));
+    setInputs(prev => ({ ...prev, estimatedItems: [...prev.estimatedItems, item] }));
     setNewItem({ name: '', amount: 0, remark: '' });
     setIsModalOpen(false);
   };
 
   const handleDeleteItem = (id: string) => {
-    setInputs(prev => ({
-      ...prev,
-      estimatedItems: prev.estimatedItems.filter(item => item.id !== id)
-    }));
+    setInputs(prev => ({ ...prev, estimatedItems: prev.estimatedItems.filter(item => item.id !== id) }));
+  };
+
+  const handleExportCSV = () => {
+    const headers = ["類別/項目", "金額 (USD)", "備註", "距目標額度"];
+    const rows = [
+      ["總收入基準", inputs.totalIncome, "主錢包", ""],
+      ["目前已實支", inputs.actualExpenditure, "已核銷單據", ""],
+      ...inputs.estimatedItems.map(item => [item.name, item.amount, item.remark || "", ""]),
+      [`目標支出額 (${targetPercentage}%)`, metrics.targetBudget, "基準計算", metrics.targetBudget],
+      ["距目標還可支出", "", "預算剩餘", metrics.amountToReachTarget],
+      ["預估總支出總計", metrics.totalProjectedExpenditure, metrics.isOverBudget ? "超出" : "合規", ""]
+    ];
+
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+      + rows.map(r => r.join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `財務預算報表_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Drag and Drop Handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    // Required for some browsers
+    e.dataTransfer.setData("text/html", "");
+  };
+
+  const handleDragEnter = (index: number) => {
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const newItems = [...inputs.estimatedItems];
+    const itemToMove = newItems[draggedIndex];
+    newItems.splice(draggedIndex, 1);
+    newItems.splice(index, 0, itemToMove);
+
+    setDraggedIndex(index);
+    setInputs(prev => ({ ...prev, estimatedItems: newItems }));
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 pb-20 print:bg-white print:pb-0">
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          .print-only { display: block !important; }
-          .card { border: 1px solid #e2e8f0 !important; box-shadow: none !important; }
-        }
-        .print-only { display: none; }
-        .table-fixed-header th { position: sticky; top: 0; background: #f8fafc; z-index: 10; }
-      `}</style>
-
+    <div className="min-h-screen pb-20 print:bg-white print:pb-0">
       {/* Header */}
-      <header className="bg-white border-b border-slate-300 sticky top-0 z-20 no-print shadow-sm">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-20 no-print">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg text-white shadow-lg">
+            <div className="bg-blue-600 p-2 rounded-lg text-white">
               <Calculator size={24} />
             </div>
-            <h1 className="text-xl font-black text-slate-800 tracking-tight">會計預算評估系統</h1>
+            <h1 className="text-xl font-black text-slate-800 tracking-tight">會計預算評估中心</h1>
           </div>
-          <button 
-            onClick={() => window.print()}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-black text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-md active:scale-95"
-          >
-            <Printer size={18} />
-            列印 PDF 報表
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={handleExportCSV}
+              className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold transition-all border border-slate-200"
+            >
+              <FileDown size={18} />
+              <span className="hidden sm:inline">匯出 CSV</span>
+            </button>
+            <button 
+              onClick={() => window.print()}
+              className="flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-xl font-bold transition-all shadow-md"
+            >
+              <Printer size={18} />
+              <span className="hidden sm:inline">PDF 報表</span>
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 print:block">
         
-        {/* Left: Control Panel */}
+        {/* Left Control Side */}
         <section className="lg:col-span-4 flex flex-col gap-6 no-print">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xl card">
-            <h2 className="text-lg font-black mb-6 flex items-center gap-2 border-b-2 border-slate-50 pb-3 text-slate-900">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h2 className="text-lg font-black mb-6 flex items-center gap-2 text-slate-900">
               <Wallet className="text-blue-600" size={20} />
-              財務基本盤
+              預算核心設定
             </h2>
-            <div className="flex flex-col gap-5">
+            <div className="space-y-5">
               <NumberInput 
-                label="目前總收入 (基準)" 
+                label="目前總收入 (年度)" 
                 value={inputs.totalIncome} 
                 onChange={(v) => handleUpdateBase('totalIncome', v)} 
-                icon={<TrendingUp size={16} className="text-emerald-600" />}
+                icon={<TrendingUp size={16} className="text-green-600" />}
               />
               <NumberInput 
-                label="目前已支出 (實支)" 
+                label="目前累計實支" 
                 value={inputs.actualExpenditure} 
                 onChange={(v) => handleUpdateBase('actualExpenditure', v)} 
                 icon={<Briefcase size={16} className="text-blue-600" />}
               />
-              
-              <div className="flex flex-col gap-2 pt-4 border-t border-slate-100">
-                <label className="text-xs font-black text-slate-500 uppercase flex items-center gap-2 tracking-widest">
+              <div className="pt-4 border-t">
+                <label className="text-xs font-black text-slate-500 uppercase flex items-center gap-2 mb-2 tracking-widest">
                   <Target size={14} className="text-orange-500" />
-                  目標支出佔比設定 (%)
+                  自定義警戒佔比 (%)
                 </label>
-                <div className="relative">
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-900 font-black">%</span>
-                  <input
-                    type="number"
-                    value={targetPercentage}
-                    onChange={(e) => setTargetPercentage(Number(e.target.value))}
-                    className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none text-slate-900 font-black text-lg transition-all"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-500 font-medium italic">系統將依此數值計算支出餘裕。</p>
+                <input
+                  type="number"
+                  value={targetPercentage}
+                  onChange={(e) => setTargetPercentage(Number(e.target.value))}
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl font-black text-lg outline-none focus:border-blue-500"
+                />
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xl card">
-            <div className="flex items-center justify-between mb-6 border-b-2 border-slate-50 pb-3">
-              <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <Settings className="text-slate-400" size={20} />
-                預估支出項目
-              </h2>
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-black text-slate-900">預估支出清單</h2>
               <button 
                 onClick={() => setIsModalOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors shadow-blue-200 shadow-lg"
+                className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
               >
                 <Plus size={20} />
               </button>
             </div>
-
             <div className="space-y-3">
               {inputs.estimatedItems.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 font-bold italic border-2 border-dashed border-slate-100 rounded-xl">
-                  無預估項目
+                <div className="text-center py-10 border-2 border-dashed border-slate-100 rounded-xl text-slate-400 font-bold italic">
+                  暫無預估項目
                 </div>
               ) : (
-                inputs.estimatedItems.map((item) => (
-                  <div key={item.id} className="group p-4 bg-slate-50 border-2 border-transparent hover:border-blue-400 rounded-xl transition-all relative">
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-black text-slate-800">{item.name}</span>
-                      <button 
-                        onClick={() => handleDeleteItem(item.id)}
-                        className="text-slate-300 hover:text-rose-600 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                inputs.estimatedItems.map((item, index) => (
+                  <div 
+                    key={item.id} 
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragEnter={() => handleDragEnter(index)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={(e) => e.preventDefault()}
+                    className={`group flex items-start gap-3 p-4 bg-slate-50 rounded-xl border-2 transition-all cursor-default ${draggedIndex === index ? 'opacity-40 border-blue-500 bg-blue-50 scale-95' : 'border-transparent hover:border-blue-200 hover:shadow-md'}`}
+                  >
+                    <div className="mt-1 cursor-grab active:cursor-grabbing text-slate-300 group-hover:text-slate-400">
+                      <GripVertical size={20} />
                     </div>
-                    <div className="text-lg font-black text-blue-700">${item.amount.toLocaleString()}</div>
-                    {item.remark && <p className="text-xs text-slate-500 mt-2 leading-relaxed">{item.remark}</p>}
+                    <div className="flex-1">
+                      <div className="flex justify-between font-black text-slate-800">
+                        <span>{item.name}</span>
+                        <button 
+                          onClick={() => handleDeleteItem(item.id)} 
+                          className="text-slate-300 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={16}/>
+                        </button>
+                      </div>
+                      <div className="text-blue-600 font-black text-lg">${item.amount.toLocaleString()}</div>
+                      <p className="text-[11px] text-slate-500 mt-1">{item.remark || "無備註"}</p>
+                    </div>
                   </div>
                 ))
+              )}
+              {inputs.estimatedItems.length > 1 && (
+                <p className="text-[10px] text-slate-400 text-center font-bold uppercase tracking-widest pt-2">
+                  提示：可直接拖移項目調整順序
+                </p>
               )}
             </div>
           </div>
         </section>
 
-        {/* Right: Analysis & List */}
+        {/* Right Dashboard Side */}
         <section className="lg:col-span-8 flex flex-col gap-6 print:w-full">
-          
-          {/* Key Numbers */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 print:grid-cols-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { label: '當前實支佔比', value: metrics.currentSpentPercentage, color: 'text-blue-600', bg: 'bg-blue-600' },
-              { label: '預估總佔比', value: metrics.projectedTotalPercentage, color: metrics.isOverBudget ? 'text-rose-600' : 'text-indigo-600', bg: metrics.isOverBudget ? 'bg-rose-600' : 'bg-indigo-600' },
-              { label: '剩餘預算額', value: metrics.remainingBudget, isCurrency: true, color: metrics.remainingBudget < 0 ? 'text-rose-600' : 'text-emerald-600' }
+              { label: '實支佔比', value: `${metrics.currentSpentPercentage.toFixed(1)}%`, color: 'text-blue-600' },
+              { label: '預估總佔比', value: `${metrics.projectedTotalPercentage.toFixed(1)}%`, color: metrics.isOverBudget ? 'text-red-600' : 'text-indigo-600' },
+              { label: '剩餘預算額', value: `$${metrics.remainingBudget.toLocaleString()}`, color: 'text-slate-900' }
             ].map((card, i) => (
-              <div key={i} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-lg card">
-                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2">{card.label}</p>
-                <h3 className={`text-3xl font-black ${card.color}`}>
-                  {card.isCurrency ? `$${card.value.toLocaleString()}` : `${card.value.toFixed(1)}%`}
-                </h3>
-                {card.bg && (
-                  <div className="w-full bg-slate-100 h-2 mt-4 rounded-full overflow-hidden no-print">
-                    <div className={`${card.bg} h-full transition-all duration-1000`} style={{ width: `${Math.min(100, card.value)}%` }} />
-                  </div>
-                )}
+              <div key={i} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{card.label}</span>
+                <div className={`text-2xl font-black mt-1 ${card.color}`}>{card.value}</div>
               </div>
             ))}
           </div>
 
-          {/* Main Table: The Detailed Breakdown */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl card overflow-hidden">
-            <div className="p-6 bg-slate-50/50 border-b border-slate-200 flex items-center justify-between">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-100 bg-slate-50/30">
               <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <Info size={20} className="text-blue-600" />
-                收支詳細清單
+                <Info size={18} className="text-blue-600" />
+                收支詳細清單 (含 {targetPercentage}% 目標對比)
               </h3>
-              <div className="text-[11px] font-bold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 no-print">
-                基準點：{targetPercentage}% 預算目標
-              </div>
             </div>
-            
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50 text-slate-600 font-black text-[11px] uppercase tracking-widest border-b border-slate-200">
-                    <th className="py-4 px-6 text-left">類別 / 項目名稱</th>
+                  <tr className="bg-slate-50 text-slate-500 font-black uppercase text-[10px] tracking-widest border-b">
+                    <th className="py-4 px-6 text-left">類別名稱</th>
                     <th className="py-4 px-6 text-right">金額 (USD)</th>
-                    <th className="py-4 px-6 text-left">數據來源 / 備註</th>
-                    <th className="py-4 px-6 text-right">距目標額度 ({targetPercentage}%)</th>
+                    <th className="py-4 px-6 text-left">數據備註</th>
+                    <th className="py-4 px-6 text-right">對比目標額度</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  <tr className="bg-white">
-                    <td className="py-5 px-6 font-bold text-slate-900">總收入基準</td>
+                  <tr>
+                    <td className="py-5 px-6 font-bold text-slate-900">1. 總收入基準 (Income)</td>
                     <td className="py-5 px-6 text-right font-black text-slate-900">${inputs.totalIncome.toLocaleString()}</td>
-                    <td className="py-5 px-6 text-slate-500 text-xs italic">主錢包 / 年度預算</td>
-                    <td className="py-5 px-6 text-right text-slate-400">—</td>
+                    <td className="py-5 px-6 text-slate-500 italic">財務主帳戶</td>
+                    <td className="py-5 px-6 text-right text-slate-300">—</td>
                   </tr>
-                  <tr className="bg-slate-50/30">
-                    <td className="py-5 px-6 font-bold text-slate-900 underline underline-offset-4 decoration-blue-300">目前已實支</td>
+                  <tr className="bg-blue-50/20">
+                    <td className="py-5 px-6 font-bold text-slate-900 underline underline-offset-4 decoration-blue-200">2. 目前實支項目 (Spent)</td>
                     <td className="py-5 px-6 text-right font-black text-blue-700">${inputs.actualExpenditure.toLocaleString()}</td>
-                    <td className="py-5 px-6 text-slate-500 text-xs italic">已核銷單據</td>
-                    <td className="py-5 px-6 text-right text-slate-400">—</td>
+                    <td className="py-5 px-6 text-slate-500 italic">已簽核核銷</td>
+                    <td className="py-5 px-6 text-right text-slate-300">—</td>
                   </tr>
                   {inputs.estimatedItems.map((item, idx) => (
-                    <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-5 px-6 text-slate-900 font-bold">預估：{item.name}</td>
+                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-5 px-6 text-slate-800 font-bold">{idx + 3}. 預估支出：{item.name}</td>
                       <td className="py-5 px-6 text-right font-black text-slate-900">${item.amount.toLocaleString()}</td>
-                      <td className="py-5 px-6 text-slate-700 text-xs leading-relaxed max-w-xs">{item.remark || '—'}</td>
-                      <td className="py-5 px-6 text-right text-slate-400">—</td>
+                      <td className="py-5 px-6 text-slate-600 text-xs font-medium max-w-xs">{item.remark || "無相關細節"}</td>
+                      <td className="py-5 px-6 text-right text-slate-300">—</td>
                     </tr>
                   ))}
                   
-                  {/* 目標百分比計算行 */}
                   <tr className="bg-orange-50/50">
-                    <td className="py-5 px-6 text-orange-800 font-black flex items-center gap-2">
-                      <Target size={14} />
-                      目標支出額 ({targetPercentage}%)
+                    <td className="py-5 px-6 text-orange-900 font-black flex items-center gap-2">
+                      <Target size={14}/> 目標支出額度 ({targetPercentage}%)
                     </td>
-                    <td className="py-5 px-6 text-right font-black text-orange-900">
-                      ${metrics.targetBudget.toLocaleString()}
-                    </td>
-                    <td className="py-5 px-6 text-orange-700 text-[10px] font-bold italic uppercase tracking-tighter">系統計算：總收 × {targetPercentage}%</td>
+                    <td className="py-5 px-6 text-right font-black text-orange-900">${metrics.targetBudget.toLocaleString()}</td>
+                    <td className="py-5 px-6 text-orange-700 text-[10px] font-bold italic">總收之 {targetPercentage} %</td>
                     <td className="py-5 px-6 text-right font-black text-orange-900">${metrics.targetBudget.toLocaleString()}</td>
                   </tr>
-                  
-                  <tr className="bg-blue-50/50">
-                    <td className="py-5 px-6 text-blue-800 font-black">距目標可支出差額</td>
-                    <td className="py-5 px-6 text-right font-black text-slate-400">—</td>
-                    <td className="py-5 px-6 text-blue-700 text-[10px] font-bold italic">尚餘可支出之餘力</td>
-                    <td className="py-5 px-6 text-right font-black text-blue-800 text-lg">
-                      ${metrics.amountToReachTarget.toLocaleString()}
-                    </td>
+
+                  <tr className="bg-blue-50">
+                    <td className="py-5 px-6 text-blue-800 font-black">距目標可再支出空間</td>
+                    <td className="py-5 px-6 text-right text-slate-400">—</td>
+                    <td className="py-5 px-6 text-blue-600 text-[10px] font-bold italic">預算盈餘監測</td>
+                    <td className="py-5 px-6 text-right font-black text-blue-800 text-lg">${metrics.amountToReachTarget.toLocaleString()}</td>
                   </tr>
 
-                  {/* 總結行 */}
-                  <tr className={`border-t-4 border-slate-900 bg-slate-900 ${metrics.isOverBudget ? 'text-rose-500' : 'text-white'}`}>
-                    <td className="py-8 px-6 text-xl font-black">預估總支出 (Σ)</td>
+                  <tr className={`border-t-4 border-slate-900 ${metrics.isOverBudget ? 'bg-red-900 text-white' : 'bg-slate-900 text-white'}`}>
+                    <td className="py-8 px-6 text-xl font-black italic">預估總額支出 (Total)</td>
                     <td className="py-8 px-6 text-right text-2xl font-black">${metrics.totalProjectedExpenditure.toLocaleString()}</td>
                     <td className="py-8 px-6">
-                      <div className="text-[10px] font-black uppercase tracking-widest opacity-70">當前預算健康度</div>
-                      <div className="flex items-center gap-2 font-black mt-1">
-                         {metrics.isOverBudget ? '⚠️ 嚴重超出預算' : '✅ 預算範圍內'}
-                      </div>
+                       <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${metrics.isOverBudget ? 'bg-white text-red-600' : 'bg-green-600 text-white'}`}>
+                         {metrics.isOverBudget ? '⚠️ 嚴重超出' : '✅ 健康'}
+                       </span>
                     </td>
-                    <td className="py-8 px-6 text-right">
-                      <div className="text-[10px] font-black uppercase tracking-widest opacity-70">預估佔比</div>
-                      <div className="text-xl font-black">{metrics.projectedTotalPercentage.toFixed(1)}%</div>
-                    </td>
+                    <td className="py-8 px-6 text-right font-black text-xl">{metrics.projectedTotalPercentage.toFixed(1)}%</td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:grid-cols-2">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xl card">
-              <h4 className="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-[0.2em] border-b border-slate-50 pb-2">預估支出構成分析</h4>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={breakdownData.length > 0 ? breakdownData : [{ name: '無支出', value: 1 }]}
-                      cx="50%" cy="45%" innerRadius={60} outerRadius={85} paddingAngle={4} dataKey="value"
-                    >
-                      {breakdownData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
-                      ))}
-                      {breakdownData.length === 0 && <Cell fill="#f1f5f9" />}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
-                      formatter={(v: number) => `$${v.toLocaleString()}`}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xl card">
-              <h4 className="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-[0.2em] border-b border-slate-50 pb-2">財務核心數據對比</h4>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 30 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" stroke="#64748b" fontSize={11} width={80} axisLine={false} tickLine={false} fontWeight="900" />
-                    <Tooltip 
-                      cursor={{ fill: '#f8fafc' }}
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
-                      formatter={(v: number) => `$${v.toLocaleString()}`}
-                    />
-                    <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={28}>
-                      {chartData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={index === 2 ? '#10b981' : (index === 0 ? '#2563eb' : '#6366f1')} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h4 className="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-[0.2em] border-b border-slate-50 pb-2">財務核心數據趨勢</h4>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 30 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="name" type="category" stroke="#64748b" fontSize={11} width={80} axisLine={false} tickLine={false} fontWeight="900" />
+                  <Tooltip 
+                    cursor={{ fill: '#f8fafc' }}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}
+                    formatter={(v: number) => `$${v.toLocaleString()}`}
+                  />
+                  <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={28} fill="#2563eb" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </section>
       </main>
 
-      {/* Modal: Add Expenditure */}
+      {/* Modal: Add Item */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-300 no-print">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200 overflow-hidden">
-            <div className="flex items-center justify-between p-6 bg-slate-50/50 border-b">
-              <h3 className="text-xl font-black text-slate-900 tracking-tight">新增支出預算項目</h3>
-              <button onClick={() => setIsModalOpen(false)} className="bg-white p-2 rounded-full border shadow-sm hover:bg-slate-50 transition-colors">
-                <X size={20} />
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md no-print">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 bg-slate-50 border-b flex items-center justify-between">
+              <h3 className="text-xl font-black text-slate-900 italic">新增預估支出</h3>
+              <button onClick={() => setIsModalOpen(false)} className="bg-white p-2 rounded-full shadow-sm"><X size={20}/></button>
             </div>
             <div className="p-8 space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">項目名稱</label>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">項目名稱</label>
                 <input 
-                  type="text" autoFocus placeholder="例如：設備採購費用" 
+                  type="text" autoFocus placeholder="請輸入項目名稱" 
                   value={newItem.name} onChange={(e) => setNewItem(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-600 transition-all font-bold text-slate-900"
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold outline-none focus:border-blue-500 transition-all"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">預算金額 (USD)</label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-slate-400">$</span>
-                  <input 
-                    type="number" placeholder="0.00" 
-                    value={newItem.amount || ''} onChange={(e) => setNewItem(prev => ({ ...prev, amount: Number(e.target.value) }))}
-                    className="w-full pl-8 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-600 transition-all font-bold text-slate-900"
-                  />
-                </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">預估金額 (USD)</label>
+                <input 
+                  type="number" placeholder="0.00" 
+                  value={newItem.amount || ''} onChange={(e) => setNewItem(prev => ({ ...prev, amount: Number(e.target.value) }))}
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold outline-none focus:border-blue-500 transition-all"
+                />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">備註內容</label>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">備註內容</label>
                 <textarea 
-                  placeholder="補充說明支出細節..." 
+                  placeholder="補充細節..." 
                   value={newItem.remark} onChange={(e) => setNewItem(prev => ({ ...prev, remark: e.target.value }))}
-                  rows={3} className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-600 transition-all font-medium text-slate-800 resize-none"
+                  rows={3} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium outline-none focus:border-blue-500 transition-all resize-none"
                 />
               </div>
             </div>
             <div className="p-6 bg-slate-50 flex gap-4">
-              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3.5 rounded-xl font-black text-slate-600 bg-white border-2 border-slate-200 hover:bg-slate-100 transition-all">取消</button>
-              <button onClick={handleAddItem} disabled={!newItem.name} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-black transition-all shadow-lg shadow-blue-200 disabled:opacity-50">確認新增項目</button>
+              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3.5 rounded-2xl font-black text-slate-500 bg-white border shadow-sm">取消</button>
+              <button onClick={handleAddItem} disabled={!newItem.name} className="flex-[2] py-3.5 rounded-2xl font-black text-white bg-blue-600 shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all disabled:opacity-50">確認新增</button>
             </div>
           </div>
         </div>
       )}
-      
-      {/* Footer / Mobile Summary */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200 p-4 lg:hidden no-print z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
-        <div className="flex items-center justify-between gap-6 max-w-lg mx-auto">
-          <div className="flex flex-col">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">總預計支出額</span>
-            <span className={`text-2xl font-black ${metrics.isOverBudget ? 'text-rose-600' : 'text-slate-900'}`}>
-              ${metrics.totalProjectedExpenditure.toLocaleString()}
-            </span>
-          </div>
-          <button onClick={() => setIsModalOpen(true)} className="flex-1 h-12 bg-blue-600 text-white rounded-xl font-black shadow-lg shadow-blue-200 active:scale-95 transition-all">新增項目</button>
-        </div>
-      </div>
     </div>
   );
 };
