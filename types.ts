@@ -1,21 +1,15 @@
 
+export interface ExpenditureItem {
+  id: string;
+  name: string;
+  amount: number;
+  remark: string;
+}
+
 export interface BudgetInputs {
   totalIncome: number;
   actualExpenditure: number;
-  personnelCosts: number;
-  officeCosts: number;
-  businessCosts: number;
-  maintenanceCosts: number;
-  procurementCosts: number;
-  otherCosts: number;
-  remarks: {
-    personnel: string;
-    office: string;
-    business: string;
-    maintenance: string;
-    procurement: string;
-    other: string;
-  };
+  estimatedItems: ExpenditureItem[];
 }
 
 export interface BudgetMetrics {
