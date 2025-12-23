@@ -1,5 +1,5 @@
 {
-  "name": "Professional Budget Evaluation System",
-  "description": "A high-end accounting budget analysis tool that tracks current expenditures against income and forecasts future costs with AI-driven insights.",
+  "name": "Professional Budget Evaluation System - Vanilla Edition",
+  "description": "A high-end accounting budget analysis tool optimized for static hosting. Features drag-and-drop reordering, Chart.js visualization, and Gemini AI insights.",
   "requestFramePermissions": []
 }
